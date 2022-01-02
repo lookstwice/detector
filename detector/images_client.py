@@ -5,7 +5,7 @@ import base64
 
 FLASK_ENDPOINT = 'http://127.0.0.1:5000'
 
-class DetectorClient:    
+class ImagesClient:    
     def _retrieve_image_data(self, base_endpoint, id="", params={}):
         if params:
             response = requests.get(f'{FLASK_ENDPOINT}{base_endpoint}',

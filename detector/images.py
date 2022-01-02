@@ -3,6 +3,7 @@ import os
 import uuid
 import magic
 import base64
+import json
 
 from time import time
 from datetime import datetime
@@ -10,7 +11,7 @@ from datetime import datetime
 from flask import (Blueprint, jsonify, request)
 from werkzeug.exceptions import abort
 
-from .db import db, Image
+from .db import Object, db, Image
 
 IMAGGA_TAGS_ENDPOINT = "https://api.imagga.com/v2/tags"
 API_KEY = os.environ["API_KEY"]
@@ -52,55 +53,61 @@ def id_gen(id_base="image"):
 
 
 class Request_Handler():
-    def detect_objs_by_path(self, image_data):
-        """[summary]
-
-        Args:
-            image_data ([str): path/to/image_file
-
-        Returns:
-            [type]: [description]
-        """
-        # with open(image_path, 'rb') as file_obj:
-        #     response = requests.post(
-        #         IMAGGA_TAGS_ENDPOINT,
-        #         auth=(API_KEY, API_SECRET),
-        #         files={'image': file_obj})
-        # return response.content
-        
-        response = requests.post(
-            IMAGGA_TAGS_ENDPOINT,
-            auth=(API_KEY, API_SECRET),
-            data={'image': base64.b64decode(image_data.encode())})
-        
-        # DEBUG
-        return str(response.json())
-
-    def detect_objs_by_url(self, image_url):
-        """[summary]
-
-        Args:
-            image_url ([str]): image_url
-
-        Returns:
-            [type]: [description]
-        """
-        response = requests.get(
-            f'{IMAGGA_TAGS_ENDPOINT}?image_url={image_url}',
-            auth=(API_KEY, API_SECRET))
-        return response.content
+    def insert_tags(self, image, response):
+        response_dict = json.loads(response.content.decode('utf-8'))
+        response_list = response_dict.get('result').get('tags')
+            
+        for current in response_list:
+            tag = current.get('tag').get('en')
+            object = Object(name=tag)
+            image.objects.append(object)
+            db.session.commit()
+                    
+    def detect_objs(self, request_body):
+        label = request_body.get("label")
+        if not label:
+            label = name_gen()
 
         # DEBUG
-        return str(response.json())
+        image = Image(data="foo".encode(), label=label)
+        db.session.add(image)
+        db.session.commit()
+
+        if request_body.get('detection_flag') == "True":
+            image_data = request_body.get('data')
+            response = requests.post(
+                IMAGGA_TAGS_ENDPOINT,
+                auth=(API_KEY, API_SECRET),
+                data={'image': base64.b64decode(image_data.encode())})
+            
+            self.insert_tags(image, response)
+
+        return str(image.id)
+
+    def detect_objs_by_url(self, request_body):
+        label = request_body.get("label")
+        if not label:
+            label = name_gen()
+
+        # DEBUG
+        image = Image(label=label)
+        db.session.add(image)
+        db.session.commit()
+        
+        if request_body.get('detection_flag') == "True":
+            image_url = request_body.get("image_url")
+            response = requests.get(
+                f'{IMAGGA_TAGS_ENDPOINT}?image_url={image_url}',
+                auth=(API_KEY, API_SECRET))
+
+            self.insert_tags(image, response)
+
+        # DEBUG
+        return "Drokk"
 
 
 @bp.route('/images', methods=['GET', 'POST'])
 def retrieve_image_data():
-    """[summary]
-
-    Returns:
-        [type]: [description]
-    """
     if request.method == 'POST':
         """[summary]
         Send a JSON request body including an image file or URL, an optional label for the
@@ -112,44 +119,35 @@ def retrieve_image_data():
         Returns:
             [type]: [description]
         """
-        db.session.add(Image(data="foo".encode(), label="test"))
-        db.session.commit()
+
         handler = Request_Handler()
 
         request_body = request.get_json()
         
         # DEBUG
         headers = request.headers.get('Content-type')
-
-        image_url = request_body.get("image_url")
-        label = request_body.get("label")
-        image_data = request_body.get('data')
                 
-        if image_data:
-            response = handler.detect_objs_by_path(image_data)
+        if request_body.get('data'):
+            response = handler.detect_objs(request_body)
             return response
-        elif image_url:
-            response = handler.detect_objs_by_url(image_url)
+        elif request_body.get("image_url"):
+            response = handler.detect_objs_by_url(request_body)
             return response
         else:
             abort(400, "provide 'image_data' or 'image_url' in the json body of the request")
     elif request.method == 'GET':
         if request.args:
-            """[summary]
-            Returns a HTTP 200 OK with a JSON response body containing only images that have
-            the detected objects specified in the query parameter.
-            Returns:
-                [type]: [description]
-            """
-            return str(request.args.get('objects'))
+            filters = request.args.to_dict().get('objects').split(",")
+
+            for filter in filters:
+                obj_match = Object.query.filter_by(name=filter).all()
+                for obj in obj_match:
+                    print(Image.query.get(obj.image_id))
+            return "Grok"
         else:
-            """[summary]
-            Returns HTTP 200 OK with a JSON response containing all image metadata.
-            Returns:
-                [type]: [description]
-            """
-            
+            all_images = Image.query.all()
             return str(Image.query.all())
+
         
 @bp.route('/images/<imageId>', methods=['GET'])
 def retrieve_data_by_id(imageId):
@@ -162,4 +160,9 @@ def retrieve_data_by_id(imageId):
     Returns:
         [type]: [description]
     """
-    return imageId
+    image = Image.query.get(imageId)
+    # print(image.id)
+    # print(image.label)
+    # print(image.objects)
+
+    return jsonify(id=image.id, label=image.label, objects=str(image.objects))

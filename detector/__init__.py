@@ -14,8 +14,14 @@ def create_app(test_config=None):
         DATABASE=DB_PATH,
         SQLALCHEMY_DATABASE_URI = f'sqlite:///{DB_PATH}'
     )
-    
+
+    # with app.app_context():    
+    #     db.init_app(app)
+
+    # from . import db
+    # db.init_app(app)
     db.init_app(app)
+    
     with app.app_context():
         db.create_all()
 
@@ -35,5 +41,7 @@ def create_app(test_config=None):
     from . import images
     app.register_blueprint(images.bp)
     app.add_url_rule('/', endpoint='images')
+
+
 
     return app
