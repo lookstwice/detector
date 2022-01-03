@@ -5,9 +5,6 @@ from flask.cli import with_appcontext
 import flask_sqlalchemy
 
 
-# db = flask_sqlalchemy.SQLAlchemy()
-
-
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
@@ -47,30 +44,24 @@ def close_db(e=None):
 
 
 db = flask_sqlalchemy.SQLAlchemy()
-    
-# class Image(db.Model):
-#     __tablename__ = 'images'
-#     id = db.Column(db.Integer, primary_key=True)
-#     data = db.Column(db.BLOB, nullable=False)
-#     label = db.Column(db.String(80), nullable=False)
-#     objects = db.relationship("Object", back_populates="image")
-    
+
 class Image(db.Model):
     __tablename__ = 'images'
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.BLOB)
     label = db.Column(db.String(80), nullable=False)
     objects = db.relationship("Object", back_populates="image")
-    
+
     def __repr__(self):
-        return (f'<{self.__tablename__}(id={self.id} data={self.data} '
-                f'label={self.label})>')
+        return (f'{{id: {self.id}, data: {self.data}, label: {self.label}}}')
+
 
 class Object(db.Model):
     __tablename__ = 'objects'
-    image_id = db.Column(db.Integer, db.ForeignKey('images.id'), primary_key=True)
+    image_id = db.Column(db.Integer, db.ForeignKey(
+        'images.id'), primary_key=True)
     name = db.Column(db.String(80), primary_key=True)
     image = db.relationship("Image", back_populates="objects")
 
     def __repr__(self):
-        return (f'<{self.__tablename__}(image_id={self.image_id} name={self.name})')
+        return (f'{{image_id: {self.image_id}, name:{self.name}}}')

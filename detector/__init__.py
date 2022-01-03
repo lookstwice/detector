@@ -4,7 +4,6 @@ from .db import db
 
 
 def create_app(test_config=None):
-    # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     
     DB_PATH = os.path.join(app.instance_path, 'detector.sqlite3')
@@ -15,11 +14,6 @@ def create_app(test_config=None):
         SQLALCHEMY_DATABASE_URI = f'sqlite:///{DB_PATH}'
     )
 
-    # with app.app_context():    
-    #     db.init_app(app)
-
-    # from . import db
-    # db.init_app(app)
     db.init_app(app)
     
     with app.app_context():
@@ -41,7 +35,5 @@ def create_app(test_config=None):
     from . import images
     app.register_blueprint(images.bp)
     app.add_url_rule('/', endpoint='images')
-
-
 
     return app
