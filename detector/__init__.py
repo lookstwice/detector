@@ -1,21 +1,23 @@
 import os
+
 from flask import Flask
+
 from .db import db
 
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
-    
+
     DB_PATH = os.path.join(app.instance_path, 'detector.sqlite3')
 
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE=DB_PATH,
-        SQLALCHEMY_DATABASE_URI = f'sqlite:///{DB_PATH}'
+        SQLALCHEMY_DATABASE_URI=f'sqlite:///{DB_PATH}'
     )
 
     db.init_app(app)
-    
+
     with app.app_context():
         db.create_all()
 

@@ -1,11 +1,11 @@
-import requests
-from urllib3 import response
 import base64
 
+import requests
 
 FLASK_ENDPOINT = 'http://127.0.0.1:5000'
 
-class ImagesClient:    
+
+class ImagesClient:
     def _retrieve_image_data(self, base_endpoint, id="", params={}):
         if params:
             response = requests.get(f'{FLASK_ENDPOINT}{base_endpoint}',
@@ -13,16 +13,16 @@ class ImagesClient:
         else:
             response = requests.get(f'{FLASK_ENDPOINT}{base_endpoint}{id}')
         return response
-    
+
     def retrieve_all_image_data(self):
         return self._retrieve_image_data('/images')
 
     def retrieve_image_data_by_tags(self, params={}):
         return self._retrieve_image_data('/images', params=params)
-    
+
     def retrieve_image_data_by_id(self, id):
         return self._retrieve_image_data('/images/', id=id)
-    
+
     def upload_image(self, request_body, file_path=None):
         if file_path:
             with open(file_path, 'rb') as file_obj:

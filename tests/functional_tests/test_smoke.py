@@ -1,6 +1,6 @@
-import requests
 import sys
 
+import requests
 from detector.images_client import ImagesClient
 
 

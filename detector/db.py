@@ -45,6 +45,7 @@ def close_db(e=None):
 
 db = flask_sqlalchemy.SQLAlchemy()
 
+
 class Image(db.Model):
     __tablename__ = 'images'
     id = db.Column(db.Integer, primary_key=True)
@@ -54,6 +55,10 @@ class Image(db.Model):
 
     def __repr__(self):
         return (f'{{id: {self.id}, data: {self.data}, label: {self.label}}}')
+
+    def to_dict(self):
+        return {"id": self.id, "label": self.label,
+                "objects": [obj.to_dict() for obj in self.objects]}
 
 
 class Object(db.Model):
@@ -65,3 +70,6 @@ class Object(db.Model):
 
     def __repr__(self):
         return (f'{{image_id: {self.image_id}, name:{self.name}}}')
+
+    def to_dict(self):
+        return {"image_id": self.image_id, "name": self.name}
